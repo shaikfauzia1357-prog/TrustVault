@@ -1,0 +1,184 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrustVault</title>
+  <style>
+    body { font-family: Arial; background: #f0f4f8; margin: 0; color: #233044; }
+    header { background: #173b67; color: white; padding: 20px; text-align: center; }
+    main { background: white; max-width: 480px; margin: 30px auto; padding: 24px; border-radius: 12px; }
+    input, button { width: 100%; box-sizing: border-box; padding: 12px; margin: 8px 0; }
+    button { background: #1769aa; color: white; border: 0; border-radius: 5px; cursor: pointer; }
+    #message { overflow-wrap: anywhere; }
+    li { margin-bottom: 12px; overflow-wrap: anywhere; }
+    li button { width: auto; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TrustVault</h1>
+    <p>Secure Document Sharing with an Audit Trail</p>
+  </header>
+
+  <main>
+    <h2>Create Account / Login</h2>
+    <input id="username" placeholder="Username (3–30 letters, numbers or _)">
+    <input id="password" type="password" placeholder="Password (at least 8 characters)">
+
+    <button onclick="account('register')">Register</button>
+    <button onclick="account('login')">Login</button>
+    <button onclick="logout()">Logout</button>
+
+    <h2>Upload a Document</h2>
+    <form id="uploadForm">
+      <input type="file" id="document" name="document" required>
+      <button type="submit">Upload Document</button>
+    </form>
+
+    <h2>My Uploaded Documents</h2>
+    <button onclick="loadDocuments()">Refresh Documents</button>
+    <ul id="documentsList"></ul>
+
+    <button onclick="loadAuditLogs()">View Audit Trail</button>
+    <ul id="auditList"></ul>
+
+    <p id="message" role="status"></p>
+  </main>
+
+  <script>
+    const message = document.getElementById("message");
+
+    async function loadDocuments() {
+      const list = document.getElementById("documentsList");
+      list.replaceChildren();
+
+      try {
+        const response = await fetch("/documents");
+
+        if (!response.ok) {
+          list.textContent = "Please log in to view your documents.";
+          return;
+        }
+
+        const documents = await response.json();
+
+        if (documents.length === 0) {
+          list.textContent = "No documents uploaded yet.";
+          return;
+        }
+
+        documents.forEach(doc => {
+          const item = document.createElement("li");
+          item.appendChild(document.createTextNode(
+            `${doc.original_name} — ${doc.uploaded_at} `
+          ));
+
+          const downloadButton = document.createElement("button");
+          downloadButton.textContent = "Download";
+          downloadButton.addEventListener("click", () => {
+            window.location.href = `/download/${doc.id}`;
+          });
+
+          item.appendChild(downloadButton);
+          list.appendChild(item);
+        });
+      } catch {
+        list.textContent = "Could not load documents.";
+      }
+    }
+
+    async function account(action) {
+      try {
+        const response = await fetch("/auth/" + action, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("username").value,
+            password: document.getElementById("password").value
+          })
+        });
+
+        const data = await response.json();
+        message.textContent = data.message;
+
+        if (action === "login" && response.ok) {
+          loadDocuments();
+          loadAuditLogs();
+        }
+      } catch {
+        message.textContent = "Request failed. Check that the server is running.";
+      }
+    }
+
+    async function logout() {
+      try {
+        const response = await fetch("/auth/logout", { method: "POST" });
+        const data = await response.json();
+        message.textContent = data.message;
+        document.getElementById("documentsList").replaceChildren();
+        document.getElementById("auditList").replaceChildren();
+      } catch {
+        message.textContent = "Logout failed.";
+      }
+    }
+
+    document.getElementById("uploadForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const file = document.getElementById("document").files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("document", file);
+
+      try {
+        const response = await fetch("/upload", {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json();
+        message.textContent = data.message +
+          (data.filename ? " File: " + data.filename : "");
+
+        if (response.ok) {
+          loadDocuments();
+          loadAuditLogs();
+        }
+      } catch {
+        message.textContent = "Upload failed. Check the server.";
+      }
+    });
+
+    async function loadAuditLogs() {
+      const list = document.getElementById("auditList");
+      list.replaceChildren();
+
+      try {
+        const response = await fetch("/audit-logs");
+
+        if (!response.ok) {
+          list.textContent = "Please log in to view the audit trail.";
+          return;
+        }
+
+        const logs = await response.json();
+
+        if (logs.length === 0) {
+          list.textContent = "No audit records found.";
+          return;
+        }
+
+        logs.forEach(log => {
+          const item = document.createElement("li");
+          item.textContent =
+            `${log.original_name} — ${log.action} — ${log.created_at}`;
+          list.appendChild(item);
+        });
+      } catch {
+        list.textContent = "Could not load the audit trail.";
+      }
+    }
+  </script>
+</body>
+</html>
