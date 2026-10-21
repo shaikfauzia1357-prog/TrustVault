@@ -62,4 +62,5 @@ I updated the Threat 6 mitigation text in `THREATS.md` to mention both upload an
 I had tested document upload and download functionality and observed the corresponding events in the audit trail. Cross-user download rejection still needs a direct test.
 
 **Commit:**  
-Update audit trail threat documentation — [Open the repository's commit history](https://github.com/shaikfauzia1357-prog/TrustVault/commits/main/).
+Update audit trail threat documentation — [Open the repository's commit history]**Commit:**  
+[Document audit trail review in prompts log](https://github.com/shaikfauzia1357-prog/TrustVault/commit/40ee2f0336ad02bfba02ee52b15b4f6eaf18b9ea)
