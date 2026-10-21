@@ -46,9 +46,9 @@ TrustVault is a secure document storage application that allows registered users
 
 ### Threat 6: Audit Log Limitations
 
-**Risk:** The current audit trail may not record every security-relevant action or detect tampering.
+**Risk:** Important security events may not be recorded, and an attacker may attempt to modify or tamper with audit records, making suspicious activity difficult to detect.
 
-**Mitigation:** Upload actions are recorded. Production improvements should include logging downloads, login failures, and access-denied events, with stronger protection against log tampering.
+**Mitigation:** The application records document upload and download events in the audit trail. Additional improvements should include logging failed login attempts and access-denied events, as well as protecting audit records against unauthorized modification.
 
 ## 4. Known Limitations
 
