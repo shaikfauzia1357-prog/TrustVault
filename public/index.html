@@ -119,77 +119,26 @@
         message.textContent = "Request failed. Check that the server is running.";
       }
     }
+       
+async function logout() {
+  accountViewVersion++;
 
-    async function logout() {
-      try {
-        accountViewVersion++;
-document.getElementById("documentsList").replaceChildren();
-document.getElementById("auditList").replaceChildren();
-        const response = await fetch("/auth/logout", { method: "POST" });
-        const data = await response.json();
-        message.textContent = data.message;
-        document.getElementById("documentsList").replaceChildren();
-        document.getElementById("auditList").replaceChildren();
-      } catch {
-        message.textContent = "Logout failed.";
-      }
-    }
+  document.getElementById("documentsList").replaceChildren();
+  document.getElementById("auditList").replaceChildren();
 
-    document.getElementById("uploadForm").addEventListener("submit", async event => {
-      event.preventDefault();
-      const file = document.getElementById("document").files[0];
-      if (!file) return;
-
-      const formData = new FormData();
-      formData.append("document", file);
-
-      try {
-        const response = await fetch("/upload", {
-          method: "POST",
-          body: formData
-        });
-        const data = await response.json();
-        message.textContent = data.message +
-          (data.filename ? " File: " + data.filename : "");
-
-        if (response.ok) {
-          loadDocuments();
-          loadAuditLogs();
-        }
-      } catch {
-        message.textContent = "Upload failed. Check the server.";
-      }
+  try {
+    const response = await fetch("/auth/logout", {
+      method: "POST"
     });
 
-    async function loadAuditLogs() {
-      const list = document.getElementById("auditList");
-      list.replaceChildren();
+    const data = await response.json();
+    message.textContent = data.message;
 
-      try {
-        const response = await fetch("/audit-logs");
-
-        if (!response.ok) {
-          list.textContent = "Please log in to view the audit trail.";
-          return;
-        }
-
-        const logs = await response.json();
-
-        if (logs.length === 0) {
-          list.textContent = "No audit records found.";
-          return;
-        }
-
-        logs.forEach(log => {
-          const item = document.createElement("li");
-          item.textContent =
-            `${log.original_name} — ${log.action} — ${log.created_at}`;
-          list.appendChild(item);
-        });
-      } catch {
-        list.textContent = "Could not load the audit trail.";
-      }
+    if (response.ok) {
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
     }
-  </script>
-</body>
-</html>
+  } catch {
+    message.textContent = "Logout failed.";
+  }
+}
