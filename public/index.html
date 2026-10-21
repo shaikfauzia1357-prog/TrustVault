@@ -49,13 +49,16 @@
 
   <script>
     const message = document.getElementById("message");
+    let accountViewVersion = 0;
 
     async function loadDocuments() {
+      const version = accountViewVersion;
       const list = document.getElementById("documentsList");
       list.replaceChildren();
 
       try {
         const response = await fetch("/documents");
+        if (version !== accountViewVersion) return;
 
         if (!response.ok) {
           list.textContent = "Please log in to view your documents.";
@@ -91,6 +94,11 @@
 
     async function account(action) {
       try {
+        if (action === "login" || action === "logout") {
+  accountViewVersion++;
+  document.getElementById("documentsList").replaceChildren();
+  document.getElementById("auditList").replaceChildren();
+}
         const response = await fetch("/auth/" + action, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -114,6 +122,9 @@
 
     async function logout() {
       try {
+        accountViewVersion++;
+document.getElementById("documentsList").replaceChildren();
+document.getElementById("auditList").replaceChildren();
         const response = await fetch("/auth/logout", { method: "POST" });
         const data = await response.json();
         message.textContent = data.message;
