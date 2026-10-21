@@ -42,3 +42,24 @@ This file records how AI assistance was used during TrustVault development.
 AI assistance helped me understand implementation steps and debug errors. I learned that code must be placed in the correct function and that duplicate declarations can cause JavaScript errors. I verified key features by running the application and testing them in the browser.
 
 Further testing and security improvements are still required before production use.
+
+
+### Entry 6 — 2026-10-21: Updating Audit Trail Threat Documentation
+
+**What I asked the AI:**  
+I asked for help reviewing the audit trail threat documentation in `THREATS.md` and making the mitigation section accurate.
+
+**What the AI produced:**  
+The AI suggested updating Threat 6 to explain that the application records document upload and download events, while identifying additional audit logging and protection improvements.
+
+**What was wrong or needed improvement:**  
+The earlier threat documentation mentioned upload logging but did not fully reflect the download logging functionality that had been implemented and tested. I also needed to ensure that the documented security controls matched the actual application.
+
+**What I did instead:**  
+I updated the Threat 6 mitigation text in `THREATS.md` to mention both upload and download events. I kept additional improvements, such as logging failed login attempts and denied access events, as future recommendations rather than claiming they were already implemented.
+
+**Verification:**  
+I had tested document upload and download functionality and observed the corresponding events in the audit trail. Cross-user download rejection still needs a direct test.
+
+**Commit:**  
+Update audit trail threat documentation — [Open the repository's commit history](https://github.com/shaikfauzia1357-prog/TrustVault/commits/main/).
