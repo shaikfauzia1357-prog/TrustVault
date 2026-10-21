@@ -156,7 +156,7 @@ I had tested document uploads and downloads and observed the corresponding audit
 
 **Related commit:**
 
-[TrustVault commit history](https://github.com/shaikfauzia1357-prog/TrustVault/commits/main/)
+[TrustVault commit history][Audit trail threat documentation update](https://github.com/shaikfauzia1357-prog/TrustVault/commit/edca7f4d05d9aaba663b2b3b5032897e2c35bf86)
 
 ## Entry 7 — 2026-10-21: Reviewing AI Guidance and Improving Verification
 
