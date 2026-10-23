@@ -70,15 +70,13 @@ db.exec(`
         FOREIGN KEY (granted_by) REFERENCES users(id)
     );
 `);
-const adminExists = db.prepare(`
-    SELECT id FROM users WHERE username = ?
-`).get("fauzia_sk");
+const adminUsername = process.env.ADMIN_USERNAME;
 
-if (adminExists) {
+if (adminUsername) {
     db.prepare(`
         UPDATE users
         SET role = 'admin'
         WHERE username = ?
-    `).run("fauzia_sk");
+    `).run(adminUsername);
 }
 module.exports = db;
