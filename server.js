@@ -95,7 +95,37 @@ app.get("/admin/audit-logs", (req, res, next) => {
     }
 });
 
+app.get("/admin/dashboard", requireLogin, requireRole("admin"), (req, res) => {
+    try {
+        const totalUsers = db.prepare(
+            "SELECT COUNT(*) AS count FROM users"
+        ).get().count;
 
+        const totalDocuments = db.prepare(
+            "SELECT COUNT(*) AS count FROM documents"
+        ).get().count;
+
+        const sharedDocuments = db.prepare(
+            "SELECT COUNT(DISTINCT document_id) AS count FROM document_permissions"
+        ).get().count;
+
+        const totalPermissions = db.prepare(
+            "SELECT COUNT(*) AS count FROM document_permissions"
+        ).get().count;
+
+        return res.json({
+            totalUsers,
+            totalDocuments,
+            sharedDocuments,
+            totalPermissions
+        });
+    } catch (error) {
+        console.error("Admin dashboard error:", error.message);
+        return res.status(500).json({
+            message: "Could not load admin dashboard."
+        });
+    }
+});
 const storage = multer.diskStorage({
     destination: (req, file, callback) => {
         callback(null, uploadDir);
