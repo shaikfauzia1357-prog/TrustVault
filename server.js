@@ -6,6 +6,11 @@ const fs = require("fs");
 const multer = require("multer");
 const crypto = require("crypto");
 const db = require("./database");
+console.log("Database file path:", require("path").join(__dirname, "trustvault.db"));
+console.log(
+    "Users in database:",
+    db.prepare("SELECT id, username, role FROM users").all()
+);
 
 const app = express();
 app.set("trust proxy", 1);
