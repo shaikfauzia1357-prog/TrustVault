@@ -51,13 +51,24 @@ function requireRole(...allowedRoles) {
             });
         }
 
-        if (!allowedRoles.includes(req.session.role)) {
-            return res.status(403).json({
-                message: "You do not have permission to perform this action."
+        try {
+            const user = db.prepare(
+                "SELECT role FROM users WHERE id = ?"
+            ).get(req.session.userId);
+
+            if (!user || !allowedRoles.includes(user.role)) {
+                return res.status(403).json({
+                    message: "You do not have permission to perform this action."
+                });
+            }
+
+            next();
+        } catch (error) {
+            console.error("Role check error:", error.message);
+            return res.status(500).json({
+                message: "Could not verify user role."
             });
         }
-
-        next();
     };
 }
 
