@@ -83,7 +83,7 @@ app.get("/admin/audit-logs", (req, res, next) => {
     console.log("ADMIN AUDIT ROUTE HIT");
     try {
         const logs = db.prepare(`
-            SELECT
+            SELECT 
                 audit_logs.id,
                 documents.original_name,
                 users.username AS owner,
@@ -733,6 +733,17 @@ if (require.main === module) {
     SET role = 'admin'
     WHERE username = ?
 `).run("fauzia_sk");
+const adminUsername = process.env.ADMIN_USERNAME;
+
+if (adminUsername) {
+    const result = db.prepare(`
+        UPDATE users
+        SET role = 'admin'
+        WHERE username = ?
+    `).run(adminUsername);
+
+    console.log("Admin role update changes:", result.changes);
+}
 console.log(
     "Admin role updated:",
     db.prepare("SELECT username, role FROM users WHERE username = ?").get("fauzia_sk")
