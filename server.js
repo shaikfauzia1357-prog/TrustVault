@@ -8,6 +8,7 @@ const crypto = require("crypto");
 const db = require("./database");
 
 const app = express();
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
 
 const uploadDir = path.join(__dirname, "uploads");
