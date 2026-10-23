@@ -96,6 +96,66 @@
       <button type="submit">Upload Document</button>
     </form>
 
+    <h2>Share a Document</h2>
+
+<form id="permissionForm">
+  <input
+    type="number"
+    id="permissionDocumentId"
+    placeholder="Document ID"
+    min="1"
+    required
+  >
+
+  <input
+    type="text"
+    id="permissionUsername"
+    placeholder="Username to share with"
+    required
+  >
+
+  <select id="permissionType" required>
+    <option value="read">Read only</option>
+    <option value="edit">Edit</option>
+  </select>
+
+  <button type="submit">Grant Permission</button>
+</form>
+<button
+  type="button"
+  id="revokePermissionButton"
+>
+  Revoke Permission
+</button>
+<h2>Search Documents</h2>
+
+<form id="searchForm">
+  <input
+    type="text"
+    id="searchName"
+    placeholder="Search by document name"
+  >
+
+  <input
+    type="text"
+    id="searchOwner"
+    placeholder="Search by owner username"
+  >
+
+  <input
+    type="text"
+    id="searchCategory"
+    placeholder="Search by category"
+  >
+
+  <label for="searchDate">Upload date:</label>
+  <input type="date" id="searchDate">
+
+  <button type="submit">Search</button>
+  <button type="button" id="clearSearchButton">Clear Search</button>
+</form>
+
+<ul id="searchResults"></ul>
     <h2>My Uploaded Documents</h2>
     <button type="button" onclick="loadDocuments()">Refresh Documents</button>
     <ul id="documentsList"></ul>
@@ -168,7 +228,65 @@
         message.textContent = "Logout failed. Please try again.";
       }
     }
+document.getElementById("searchForm").addEventListener(
+  "submit",
+  async event => {
+    event.preventDefault();
 
+    const params = new URLSearchParams({
+      name: document.getElementById("searchName").value.trim(),
+      owner: document.getElementById("searchOwner").value.trim(),
+      category: document.getElementById("searchCategory").value.trim(),
+      date: document.getElementById("searchDate").value
+    });
+
+    const results = document.getElementById("searchResults");
+    results.replaceChildren();
+    message.textContent = "Searching documents...";
+
+    try {
+      const response = await fetch("/documents/search?" + params.toString());
+      const data = await response.json();
+
+      if (!response.ok) {
+        message.textContent = data.message || "Search failed.";
+        return;
+      }
+
+      if (data.length === 0) {
+        results.textContent = "No matching documents found.";
+        message.textContent = "";
+        return;
+      }
+
+      data.forEach(doc => {
+        const item = document.createElement("li");
+        item.textContent =
+          `${doc.original_name} — Owner: ${doc.owner} — Category: ${doc.category} — Uploaded: ${doc.uploaded_at} — Permission: ${doc.permission}`;
+
+        const downloadButton = document.createElement("button");
+        downloadButton.type = "button";
+        downloadButton.textContent = "Download";
+        downloadButton.addEventListener("click", () => {
+          window.location.href = "/download/" + encodeURIComponent(doc.id);
+        });
+
+        item.appendChild(downloadButton);
+        results.appendChild(item);
+      });
+
+      message.textContent = "Search completed.";
+    } catch {
+      message.textContent = "Could not search documents.";
+    }
+  }
+);
+
+document.getElementById("clearSearchButton").addEventListener("click", () => {
+  document.getElementById("searchForm").reset();
+  document.getElementById("searchResults").replaceChildren();
+  message.textContent = "";
+});
     async function loadDocuments() {
       const version = accountViewVersion;
       documentsList.replaceChildren();
@@ -209,7 +327,79 @@
           });
 
           item.appendChild(downloadButton);
-          documentsList.appendChild(item);
+
+const editButton = document.createElement("button");
+editButton.type = "button";
+editButton.textContent = "Edit";
+
+editButton.addEventListener("click", async () => {
+  const replacement = document.createElement("input");
+  replacement.type = "file";
+  replacement.accept = "*/*";
+
+  const picker = document.createElement("input");
+  picker.type = "file";
+
+  picker.addEventListener("change", async () => {
+    const file = picker.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("document", file);
+
+    try {
+      const response = await fetch(
+        `/documents/${encodeURIComponent(doc.id)}/edit`,
+        {
+          method: "PUT",
+          body: formData
+        }
+      );
+
+      const data = await response.json();
+      message.textContent = data.message || "Edit request completed.";
+
+      if (response.ok) {
+        await Promise.all([loadDocuments(), loadAuditLogs()]);
+      }
+    } catch {
+      message.textContent = "Could not edit the document.";
+    }
+  });
+
+  picker.click();
+});
+
+item.appendChild(editButton);
+
+const deleteButton = document.createElement("button");
+deleteButton.type = "button";
+deleteButton.textContent = "Delete";
+
+deleteButton.addEventListener("click", async () => {
+  if (!confirm(`Are you sure you want to delete "${doc.original_name}"?`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/documents/${encodeURIComponent(doc.id)}`,
+      { method: "DELETE" }
+    );
+
+    const data = await response.json();
+    message.textContent = data.message || "Delete request completed.";
+
+    if (response.ok) {
+      await Promise.all([loadDocuments(), loadAuditLogs()]);
+    }
+  } catch {
+    message.textContent = "Could not delete the document.";
+  }
+});
+
+item.appendChild(deleteButton);
+documentsList.appendChild(item);
         });
       } catch {
         if (version === accountViewVersion) {
@@ -255,7 +445,65 @@
         }
       }
     }
+    document.getElementById("permissionForm").addEventListener(
+  "submit",
+  async event => {
+    event.preventDefault();
 
+    const documentId = document.getElementById("permissionDocumentId").value;
+    const username = document.getElementById("permissionUsername").value.trim();
+    const permission = document.getElementById("permissionType").value;
+
+    try {
+      const response = await fetch(`/documents/${documentId}/permissions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, permission })
+      });
+
+      const data = await response.json();
+      message.textContent = data.message || "Permission request completed.";
+
+      if (response.ok) {
+        document.getElementById("permissionForm").reset();
+        await Promise.all([loadDocuments(), loadAuditLogs()]);
+      }
+    } catch {
+      message.textContent = "Could not grant permission.";
+    }
+  }
+);
+
+    document.getElementById("revokePermissionButton").addEventListener(
+  "click",
+  async () => {
+    const documentId = document.getElementById("permissionDocumentId").value;
+    const username = document.getElementById("permissionUsername").value.trim();
+
+    if (!documentId || !username) {
+      message.textContent = "Enter document ID and username first.";
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/documents/${documentId}/permissions/${encodeURIComponent(username)}`,
+        { method: "DELETE" }
+      );
+
+      const data = await response.json();
+      message.textContent = data.message || "Permission request completed.";
+
+      if (response.ok) {
+        await Promise.all([loadDocuments(), loadAuditLogs()]);
+      }
+    } catch {
+      message.textContent = "Could not revoke permission.";
+    }
+  }
+);
     document.getElementById("uploadForm").addEventListener(
       "submit",
       async event => {
@@ -283,9 +531,9 @@
 
           if (version !== accountViewVersion) return;
 
-          message.textContent =
-            data.message +
-            (data.filename ? " File: " + data.filename : "");
+         message.textContent =
+  data.message +
+  (data.filename ? " File: " + data.filename : "");
 
           if (response.ok) {
             document.getElementById("document").value = "";

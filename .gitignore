@@ -1,5 +1,5 @@
-
 node_modules/
 uploads/
 trustvault.db
 .env
+*.db

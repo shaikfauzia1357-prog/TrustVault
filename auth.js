@@ -1,4 +1,3 @@
-
 const bcrypt = require("bcryptjs");
 const express = require("express");
 const db = require("./database");
@@ -36,9 +35,9 @@ router.post("/register", async (req, res) => {
         const passwordHash = await bcrypt.hash(password, 12);
 
         db.prepare(`
-            INSERT INTO users (username, password_hash)
-            VALUES (?, ?)
-        `).run(username, passwordHash);
+   INSERT INTO users (username, password_hash, role)
+    VALUES (?, ?, 'owner')
+`).run(username, passwordHash);
 
         return res.status(201).json({
             message: "Account created successfully. Please log in."
@@ -65,11 +64,13 @@ router.post("/login", (req, res) => {
     }
 
     try {
-        const user = db.prepare(`
-            SELECT id, username, password_hash
-            FROM users
-            WHERE username = ?
-        `).get(username);
+        
+const user = db.prepare(`
+    SELECT id, username, password_hash, role
+    FROM users
+    WHERE username = ?
+`).get(username);
+
 
         if (
             !user ||
@@ -89,6 +90,7 @@ router.post("/login", (req, res) => {
 
             req.session.userId = user.id;
             req.session.username = user.username;
+            req.session.role = user.role;
 
             req.session.save((saveError) => {
                 if (saveError) {
@@ -119,10 +121,11 @@ router.get("/me", (req, res) => {
         });
     }
 
-    return res.json({
-        userId: req.session.userId,
-        username: req.session.username
-    });
+   return res.json({
+    userId: req.session.userId,
+    username: req.session.username,
+    role: req.session.role
+});
 });
 
 router.post("/logout", (req, res) => {
