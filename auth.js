@@ -91,6 +91,7 @@ const user = db.prepare(`
             req.session.userId = user.id;
             req.session.username = user.username;
             req.session.role = user.role;
+            
 
             req.session.save((saveError) => {
                 if (saveError) {
