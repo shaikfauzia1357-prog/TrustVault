@@ -74,7 +74,7 @@ I ran the application, uploaded a test text file, and checked whether its name a
 
 **Verification:**
 
-I confirmed that the uploaded file appeared in the application. Additional upload-security checks, including file type validation and malware scanning, remain necessary.
+I confirmed that the uploaded file appeared in the application. Additional upload-security checks, including comprehensive file-type validation and malware scanning, remain necessary.
 
 **Related commit:**
 
@@ -92,7 +92,7 @@ The AI helped with filtering documents and audit-log records using the logged-in
 
 **What was wrong or needed improvement:**
 
-A user-specific query is an important access-control measure, but it is not enough to assume that every route is secure. Each route that accesses a document must enforce the appropriate ownership check. The checks also need direct testing.
+A user-specific query is an important access-control measure, but it is not enough to assume that every route is secure. Each route that accesses a document must enforce the appropriate ownership or sharing-permission check. The checks also need direct testing.
 
 **What I did to correct or verify it:**
 
@@ -100,7 +100,7 @@ I tested the application with two accounts and checked that each account saw its
 
 **Verification:**
 
-Each account showed its own documents and audit records during testing. In the live application, I copied a document-download URL from one account, logged out, signed in with another account, and opened the copied URL. The application returned “Document not found” instead of allowing the second account to download that document.
+Each account showed its own documents and audit records during testing. In the live application, I copied a document-download URL from one account, logged out, signed in with another account, and opened the copied URL. The application returned "Document not found" instead of allowing the second account to download that document.
 
 This test supports the expected ownership restriction for the tested case. It does not prove that every possible access-control case is secure.
 
@@ -112,7 +112,7 @@ This test supports the expected ownership restriction for the tested case. It do
 
 **What I asked the AI:**
 
-I asked for help implementing document downloads and ensuring that a user could download only their own documents.
+I asked for help implementing document downloads and ensuring that a user could download only documents they were authorized to access.
 
 **What the AI produced:**
 
@@ -128,7 +128,7 @@ I worked through the debugging steps, corrected misplaced or duplicated logic, a
 
 **Verification:**
 
-I verified that document downloads worked and that upload and download events appeared in the audit trail. I also tested a copied download URL with a different account. The application returned “Document not found” rather than allowing the second account to download the document.
+I verified that document downloads worked and that upload and download events appeared in the audit trail. I also tested a copied download URL with a different account. The application returned "Document not found" rather than allowing the second account to download the document.
 
 This verifies the tested scenario, not every possible security condition.
 
@@ -156,7 +156,7 @@ I updated the Threat 6 mitigation text to mention upload and download events. I 
 
 **Verification:**
 
-I tested document uploads and downloads and observed the corresponding audit events. I also tested a cross-user download attempt in the live application; the application returned “Document not found” for the second account. Failed-login logging, denied-access logging, and protection against audit-record tampering still require further work.
+I tested document uploads and downloads and observed the corresponding audit events. I also tested a cross-user download attempt in the live application; the application returned "Document not found" for the second account. Failed-login logging, denied-access logging, and protection against audit-record tampering still require further work.
 
 **Related commit:**
 
@@ -174,11 +174,13 @@ The AI provided explanations, suggested changes, and documentation for the proje
 
 **What was wrong or needed improvement:**
 
-During the project, I noticed that AI guidance was not always consistent or complete. Sometimes I had to remind the AI about information I had already shared, explain the problem more than once, and ask for step-by-step clarification. Some implementation suggestions also needed debugging. The repository-visibility advice was confusing because the challenge instructions mentioned a public repository but also said not to make the repository public before the deadline.
+During the project, I noticed that AI guidance was not always consistent or complete. Sometimes I had to remind the AI about information I had already shared, explain the problem more than once, and ask for step-by-step clarification. Some implementation suggestions also needed debugging.
+
+The repository-visibility advice was confusing because the challenge information I was working from contained conflicting guidance about repository visibility. I needed to check the applicable submission instructions rather than rely on an earlier AI response alone.
 
 **What I did to correct or verify it:**
 
-I checked suggested changes against the actual application and repository, asked for step-by-step instructions, and avoided changing repository visibility without resolving the conflicting instructions.
+I checked suggested changes against the actual application and repository, asked for step-by-step instructions, and reviewed the challenge requirements before proceeding with repository changes.
 
 **Verification:**
 
