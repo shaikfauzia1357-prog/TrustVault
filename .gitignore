@@ -3,3 +3,10 @@ uploads/
 trustvault.db
 .env
 *.db
+# Local backup and repair files
+audit-backup.json
+backup-audit.js
+database-backup.js
+public/index-backup.html
+repair-audit-chain.js
+server-backup.js
