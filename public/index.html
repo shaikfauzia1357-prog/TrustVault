@@ -6,27 +6,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TrustVault</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f4f8;
-      margin: 0;
-      color: #233044;
-    }
+   body {
+  font-family: Arial, sans-serif;
+  background: radial-gradient(circle at top, #164e42, #071f1b 75%);
+  margin: 0;
+  color: #eaf4ff;
+  min-height: 100vh;
+}
 
-    header {
-      background: #173b67;
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
+   header {
+  background: linear-gradient(135deg, #071f1b, #047857);
+  color: white;
+  padding: 28px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(110, 231, 183, 0.35);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+}
 
-    main {
-      background: white;
-      max-width: 480px;
-      margin: 30px auto;
-      padding: 24px;
-      border-radius: 12px;
-    }
+   main {
+  background: linear-gradient(145deg, #12352d, #071f1b);
+  color: #eaf4ff;
+  max-width: 480px;
+  margin: 30px auto;
+  padding: 24px;
+  border-radius: 18px;
+  border: 1px solid rgba(110, 231, 183, 0.3);
+  box-shadow: 12px 12px 28px rgba(0, 0, 0, 0.35),
+              -5px -5px 20px rgba(110, 231, 183, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+main:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+}
 
     input, button {
       width: 100%;
@@ -56,6 +69,67 @@
       width: auto;
       margin-left: 8px;
     }
+    
+
+/* Emerald green theme */
+header h1 {
+  font-size: 2.4rem;
+  letter-spacing: 3px;
+  text-shadow: 0 0 18px rgba(110, 231, 183, 0.65);
+}
+
+input, select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #276749;
+  border-radius: 8px;
+  background: #091b17;
+  color: #eaf4ff;
+}
+
+button {
+  background: linear-gradient(135deg, #059669, #047857);
+  color: white;
+  border: 1px solid rgba(110, 231, 183, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 5px 0 #064e3b, 0 8px 18px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+button:hover {
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(2px);
+}
+
+h2 {
+  color: #6ee7b7;
+  border-bottom: 1px solid rgba(110, 231, 183, 0.25);
+  padding-bottom: 8px;
+  margin-top: 28px;
+}
+
+li {
+  background: rgba(16, 65, 49, 0.55);
+  border: 1px solid rgba(110, 231, 183, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+@media (max-width: 600px) {
+  main {
+    margin: 18px 12px;
+    padding: 18px;
+  }
+}
+
+
   </style>
 </head>
 <body>
