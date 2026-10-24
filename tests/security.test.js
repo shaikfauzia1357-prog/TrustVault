@@ -21,3 +21,8 @@ test("Documents cannot be downloaded without login", async () => {
 
   assert.equal(response.status, 401);
 });
+test("Documents cannot be searched without login", async () => {
+  const response = await request(app).get("/documents/search");
+
+  assert.equal(response.status, 401);
+});
