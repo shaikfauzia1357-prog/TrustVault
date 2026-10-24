@@ -190,6 +190,36 @@ I checked that documentation changes had been pushed to GitHub. I did not treat 
 
 [Document audit trail review in prompts log](https://github.com/shaikfauzia1357-prog/TrustVault/commit/40ee2f0336ad02bfba02ee52b15b4f6eaf18b9ea)
 
+## Entry 8 — 2026-10-24: Audit Chain Verification and Repair
+
+**What I asked the AI:**
+
+I asked for help investigating why the audit-chain verification endpoint reported an audit entry hash mismatch.
+
+**What the AI produced:**
+
+The AI helped inspect the audit-hash calculation, database schema, and repair script.
+
+**What was wrong or needed improvement:**
+
+The `audit_logs` table uses `ON DELETE SET NULL` for `document_id`. When a related document is deleted, its audit record's `document_id` can change while the stored hash remains unchanged. This can cause hash verification to fail.
+
+**What I did to correct it:**
+
+I created an audit backup and ran the repair script against the configured Neon PostgreSQL database. The script rebuilt the hash chain for the existing audit entries.
+
+**Verification:**
+
+The `/admin/verify-audit-chain` endpoint returned `valid: true`, `entriesVerified: 14`, and `Audit chain verified.` This confirms that the current 14 entries passed verification after the repair. It does not prove that the earlier audit records were never modified.
+
+**Important limitation:**
+
+Rebuilding hashes replaces the previous hashes and cannot establish the integrity of the earlier chain. The behavior of document deletion and audit-record preservation requires further improvement.
+
+**Related files:**
+
+`database.js`, `repair-audit-chain.js`, and `audit-backup.json`.
+
 ## Overall Reflection
 
 AI assistance helped me understand implementation steps, troubleshoot errors, and improve project documentation. However, I learned that AI-generated suggestions can be confusing, incomplete, or placed incorrectly. I had to review the code, identify problems, ask follow-up questions, and verify features in the running application.
