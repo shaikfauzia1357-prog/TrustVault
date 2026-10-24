@@ -1,82 +1,63 @@
+require("dotenv").config();
+const { Pool } = require("pg");
 
-const Database = require("better-sqlite3");
-const path = require("path");
+const connectionString = process.env.DATABASE_URL;
 
-const db = new Database(path.join(__dirname, "trustvault.db"));
+if (!connectionString) {
+    throw new Error("DATABASE_URL is not set.");
+}
 
-db.pragma("foreign_keys = ON");
+const db = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false }
+});
 
-db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+async function initializeDatabase() {
+    await db.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            role TEXT NOT NULL DEFAULT 'owner'
+        );
 
-    CREATE TABLE IF NOT EXISTS documents (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        original_name TEXT NOT NULL,
-        stored_name TEXT NOT NULL,
-        uploaded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-    );
+        CREATE TABLE IF NOT EXISTS documents (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            original_name TEXT NOT NULL,
+            stored_name TEXT NOT NULL,
+            uploaded_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            category TEXT NOT NULL DEFAULT 'General'
+        );
 
-    CREATE TABLE IF NOT EXISTS audit_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        document_id INTEGER,
-        action TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (document_id) REFERENCES documents(id)
-    );
-`);
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id SERIAL PRIMARY KEY,
+            document_id INTEGER REFERENCES documents(id) ON DELETE SET NULL,
+            action TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
 
-const documentColumns = db.prepare(
-    "PRAGMA table_info(documents)"
-).all();
-if (!documentColumns.some(column => column.name === "category")) {
-    db.exec(`
-        ALTER TABLE documents
-        ADD COLUMN category TEXT NOT NULL DEFAULT 'General'
+        CREATE TABLE IF NOT EXISTS document_permissions (
+            id SERIAL PRIMARY KEY,
+            document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            permission TEXT NOT NULL CHECK (permission IN ('read', 'edit')),
+            granted_by INTEGER NOT NULL REFERENCES users(id),
+            created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (document_id, user_id)
+        );
     `);
+
+    const adminUsername = process.env.ADMIN_USERNAME;
+
+    if (adminUsername) {
+        await db.query(
+            "UPDATE users SET role = 'admin' WHERE username = $1",
+            [adminUsername]
+        );
+    }
 }
 
-if (!documentColumns.some(column => column.name === "user_id")) {
-    db.exec("ALTER TABLE documents ADD COLUMN user_id INTEGER REFERENCES users(id)");
-}
-const userColumns = db.prepare(
-    "PRAGMA table_info(users)"
-).all();
-
-if (!userColumns.some(column => column.name === "role")) {
-    db.exec(`
-        ALTER TABLE users
-        ADD COLUMN role TEXT NOT NULL DEFAULT 'owner'
-    `);
-}
-db.exec(`
-    CREATE TABLE IF NOT EXISTS document_permissions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        document_id INTEGER NOT NULL,
-        user_id INTEGER NOT NULL,
-        permission TEXT NOT NULL
-            CHECK (permission IN ('read', 'edit')),
-        granted_by INTEGER NOT NULL,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE (document_id, user_id),
-        FOREIGN KEY (document_id) REFERENCES documents(id),
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (granted_by) REFERENCES users(id)
-    );
-`);
-const adminUsername = process.env.ADMIN_USERNAME;
-
-if (adminUsername) {
-    db.prepare(`
-        UPDATE users
-        SET role = 'admin'
-        WHERE username = ?
-    `).run(adminUsername);
-}
 module.exports = db;
+module.exports.initializeDatabase = initializeDatabase;

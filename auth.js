@@ -1,3 +1,4 @@
+
 const bcrypt = require("bcryptjs");
 const express = require("express");
 const db = require("./database");
@@ -22,11 +23,12 @@ router.post("/register", async (req, res) => {
     }
 
     try {
-        const existingUser = db
-            .prepare("SELECT id FROM users WHERE username = ?")
-            .get(username);
+        const existingUser = await db.query(
+            "SELECT id FROM users WHERE username = $1",
+            [username]
+        );
 
-        if (existingUser) {
+        if (existingUser.rows.length > 0) {
             return res.status(409).json({
                 message: "Username already exists."
             });
@@ -34,15 +36,22 @@ router.post("/register", async (req, res) => {
 
         const passwordHash = await bcrypt.hash(password, 12);
 
-        db.prepare(`
-   INSERT INTO users (username, password_hash, role)
-    VALUES (?, ?, 'owner')
-`).run(username, passwordHash);
+        await db.query(
+            `INSERT INTO users (username, password_hash, role)
+             VALUES ($1, $2, 'owner')`,
+            [username, passwordHash]
+        );
 
         return res.status(201).json({
             message: "Account created successfully. Please log in."
         });
     } catch (error) {
+        if (error.code === "23505") {
+            return res.status(409).json({
+                message: "Username already exists."
+            });
+        }
+
         console.error("Registration error:", error.message);
 
         return res.status(500).json({
@@ -51,7 +60,7 @@ router.post("/register", async (req, res) => {
     }
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
     const { username, password } = req.body || {};
 
     if (
@@ -64,17 +73,18 @@ router.post("/login", (req, res) => {
     }
 
     try {
-        
-const user = db.prepare(`
-    SELECT id, username, password_hash, role
-    FROM users
-    WHERE username = ?
-`).get(username);
+        const result = await db.query(
+            `SELECT id, username, password_hash, role
+             FROM users
+             WHERE username = $1`,
+            [username]
+        );
 
+        const user = result.rows[0];
 
         if (
             !user ||
-            !bcrypt.compareSync(password, user.password_hash)
+            !(await bcrypt.compare(password, user.password_hash))
         ) {
             return res.status(401).json({
                 message: "Invalid username or password."
@@ -91,7 +101,6 @@ const user = db.prepare(`
             req.session.userId = user.id;
             req.session.username = user.username;
             req.session.role = user.role;
-            
 
             req.session.save((saveError) => {
                 if (saveError) {
@@ -122,11 +131,11 @@ router.get("/me", (req, res) => {
         });
     }
 
-   return res.json({
-    userId: req.session.userId,
-    username: req.session.username,
-    role: req.session.role
-});
+    return res.json({
+        userId: req.session.userId,
+        username: req.session.username,
+        role: req.session.role
+    });
 });
 
 router.post("/logout", (req, res) => {
