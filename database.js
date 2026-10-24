@@ -1,5 +1,7 @@
+
 require("dotenv").config();
 const { Pool } = require("pg");
+const crypto = require("crypto");
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -49,6 +51,46 @@ async function initializeDatabase() {
         );
     `);
 
+    await db.query(`
+        ALTER TABLE audit_logs
+        ADD COLUMN IF NOT EXISTS previous_hash TEXT;
+
+        ALTER TABLE audit_logs
+        ADD COLUMN IF NOT EXISTS entry_hash TEXT;
+    `);
+        const oldLogs = await db.query(`
+        SELECT id, document_id, action, created_at
+        FROM audit_logs
+        WHERE entry_hash IS NULL
+        ORDER BY id ASC
+    `);
+
+    const existingLogs = await db.query(`
+        SELECT COUNT(*) AS total
+        FROM audit_logs
+        WHERE entry_hash IS NOT NULL
+    `);
+
+    if (
+        Number(existingLogs.rows[0].total) === 0 &&
+        oldLogs.rows.length > 0
+    ) {
+        let previousHash = "GENESIS";
+
+        for (const entry of oldLogs.rows) {
+            const entryHash = calculateAuditHash(entry, previousHash);
+
+            await db.query(
+                `UPDATE audit_logs
+                 SET previous_hash = $1, entry_hash = $2
+                 WHERE id = $3`,
+                [previousHash, entryHash, entry.id]
+            );
+
+            previousHash = entryHash;
+        }
+    }
+
     const adminUsername = process.env.ADMIN_USERNAME;
 
     if (adminUsername) {
@@ -59,5 +101,21 @@ async function initializeDatabase() {
     }
 }
 
+function calculateAuditHash(entry, previousHash) {
+    return crypto
+        .createHash("sha256")
+        .update(
+            JSON.stringify({
+                id: entry.id,
+                document_id: entry.document_id,
+                action: entry.action,
+                created_at: entry.created_at,
+                previous_hash: previousHash
+            })
+        )
+        .digest("hex");
+}
+
 module.exports = db;
 module.exports.initializeDatabase = initializeDatabase;
+module.exports.calculateAuditHash = calculateAuditHash;

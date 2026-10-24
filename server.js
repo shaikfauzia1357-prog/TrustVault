@@ -9,6 +9,7 @@ const fs = require("fs");
 const multer = require("multer");
 const crypto = require("crypto");
 const db = require("./database");
+const { calculateAuditHash } = require("./database");
 const { initializeDatabase } = require("./database");
 
 const app = express();
@@ -89,6 +90,60 @@ app.get("/ping-test", (req, res) => {
     res.send("TrustVault server is responding");
 });
 
+app.get(
+    "/admin/verify-audit-chain",
+    requireLogin,
+    requireRole("admin"),
+    async (req, res) => {
+        try {
+            const result = await db.query(`
+                SELECT id, document_id, action, created_at,
+                       previous_hash, entry_hash
+                FROM audit_logs
+                ORDER BY id ASC
+            `);
+
+            let expectedPreviousHash = "GENESIS";
+
+            for (const entry of result.rows) {
+                if (entry.previous_hash !== expectedPreviousHash) {
+                    return res.json({
+                        valid: false,
+                        brokenAt: entry.id,
+                        message: "Audit chain link mismatch."
+                    });
+                }
+
+                const expectedHash = calculateAuditHash(
+                    entry,
+                    expectedPreviousHash
+                );
+
+                if (entry.entry_hash !== expectedHash) {
+                    return res.json({
+                        valid: false,
+                        brokenAt: entry.id,
+                        message: "Audit entry hash mismatch."
+                    });
+                }
+
+                expectedPreviousHash = entry.entry_hash;
+            }
+
+            return res.json({
+                valid: true,
+                entriesVerified: result.rows.length,
+                message: "Audit chain verified."
+            });
+        } catch (error) {
+            console.error("Audit verification error:", error.message);
+            return res.status(500).json({
+                message: "Could not verify audit chain."
+            });
+        }
+    }
+);
+
 // Admin: view activity across documents.
 app.get(
     "/admin/audit-logs",
@@ -156,6 +211,53 @@ const upload = multer({
     }
 });
 
+async function createAuditLog(documentId, action) {
+    const client = await db.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        // Serialize audit writes to prevent concurrent chain updates.
+        await client.query(
+            "LOCK TABLE audit_logs IN EXCLUSIVE MODE"
+        );
+
+        const previousResult = await client.query(`
+            SELECT entry_hash
+            FROM audit_logs
+            ORDER BY id DESC
+            LIMIT 1
+        `);
+
+        const previousHash =
+            previousResult.rows[0]?.entry_hash || "GENESIS";
+
+        const inserted = await client.query(
+            `INSERT INTO audit_logs
+                (document_id, action, previous_hash, entry_hash)
+             VALUES ($1, $2, $3, $4)
+             RETURNING id, document_id, action, created_at, previous_hash`,
+            [documentId, action, previousHash, "PENDING"]
+        );
+
+        const entry = inserted.rows[0];
+        const entryHash = calculateAuditHash(entry, previousHash);
+
+        await client.query(
+            "UPDATE audit_logs SET entry_hash = $1 WHERE id = $2",
+            [entryHash, entry.id]
+        );
+
+        await client.query("COMMIT");
+        return entry.id;
+    } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
 // Upload a document.
 app.post(
     "/upload",
@@ -196,12 +298,10 @@ app.post(
                 ]
             );
 
-            await db.query(
-                `INSERT INTO audit_logs (document_id, action)
-                 VALUES ($1, $2)`,
-                [result.rows[0].id, "DOCUMENT_UPLOADED"]
-            );
-
+           await createAuditLog(
+    result.rows[0].id,
+    "DOCUMENT_UPLOADED"
+);
             return res.json({
                 message: "Document uploaded and recorded successfully."
             });
@@ -304,11 +404,7 @@ app.put(
                 ]
             );
 
-            await db.query(
-                `INSERT INTO audit_logs (document_id, action)
-                 VALUES ($1, $2)`,
-                [documentId, "DOCUMENT_EDITED"]
-            );
+           await createAuditLog(documentId, "DOCUMENT_EDITED");
 
             const oldFilePath = path.join(uploadDir, oldStoredName);
 
@@ -416,14 +512,10 @@ app.post(
                 ]
             );
 
-            await db.query(
-                `INSERT INTO audit_logs (document_id, action)
-                 VALUES ($1, $2)`,
-                [
-                    documentId,
-                    "PERMISSION_GRANTED_" + permission.toUpperCase()
-                ]
-            );
+           await createAuditLog(
+    documentId,
+    "PERMISSION_GRANTED_" + permission.toUpperCase()
+);
 
             return res.json({
                 message: "Document permission granted successfully."
@@ -491,11 +583,7 @@ app.delete(
                 });
             }
 
-            await db.query(
-                `INSERT INTO audit_logs (document_id, action)
-                 VALUES ($1, $2)`,
-                [documentId, "PERMISSION_REVOKED"]
-            );
+          await createAuditLog(documentId, "PERMISSION_REVOKED");
 
             return res.json({
                 message: "Document access revoked successfully."
@@ -659,12 +747,10 @@ app.get("/download/:id", requireLogin, async (req, res) => {
             });
         }
 
-        await db.query(
-            `INSERT INTO audit_logs (document_id, action)
-             VALUES ($1, $2)`,
-            [document.id, "DOCUMENT_DOWNLOADED"]
-        );
-
+       await createAuditLog(
+    document.id,
+    "DOCUMENT_DOWNLOADED"
+);
         return res.download(filePath, document.original_name, (error) => {
             if (error && !res.headersSent) {
                 res.status(500).json({
@@ -709,11 +795,7 @@ app.delete("/documents/:id", requireLogin, async (req, res) => {
             });
         }
 
-        await db.query(
-            `INSERT INTO audit_logs (document_id, action)
-             VALUES ($1, $2)`,
-            [documentId, "DOCUMENT_DELETED"]
-        );
+        await createAuditLog(documentId, "DOCUMENT_DELETED");
 
         await db.query(
             `DELETE FROM document_permissions
