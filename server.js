@@ -124,11 +124,14 @@ app.get(
 
 
 // Admin dashboard test route.
-app.get("/admin/dashboard", (req, res) => {
-    console.log("ADMIN DASHBOARD TEST ROUTE HIT");
-    console.log("Dashboard route registered and requested");
-    res.json({ message: "Admin dashboard route works" });
-});
+app.get(
+    "/admin/dashboard",
+    requireLogin,
+    requireRole("admin"),
+    (req, res) => {
+        res.sendFile(path.join(__dirname, "views", "admin.html"));
+    }
+);
 console.log(
     "REGISTERED ROUTES:",
     app.router.stack

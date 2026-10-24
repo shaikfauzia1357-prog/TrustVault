@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustVault Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 30px;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        h1 { color: #1d4ed8; }
+
+        button {
+            padding: 10px 16px;
+            margin: 8px 8px 8px 0;
+            border: none;
+            border-radius: 6px;
+            background: #1d4ed8;
+            color: white;
+            cursor: pointer;
+        }
+
+        pre {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        #status { color: #b91c1c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TrustVault Admin Dashboard</h1>
+        <p>View audit activity for TrustVault.</p>
+
+        <button id="loadLogs">Load Audit Logs</button>
+        <button id="logout">Logout</button>
+
+        <p id="status"></p>
+        <pre id="logs">Click "Load Audit Logs" to view activity.</pre>
+    </div>
+
+    <script>
+        const status = document.getElementById("status");
+        const logs = document.getElementById("logs");
+
+        document.getElementById("loadLogs").addEventListener("click", async () => {
+            status.textContent = "Loading...";
+            try {
+                const response = await fetch("/admin/audit-logs");
+                const data = await response.json();
+
+                if (!response.ok) {
+                    status.textContent = data.message || "Unable to load audit logs.";
+                    return;
+                }
+
+                status.textContent = "Audit logs loaded successfully.";
+                logs.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                status.textContent = "Could not connect to the server.";
+            }
+        });
+
+        document.getElementById("logout").addEventListener("click", async () => {
+            try {
+                const response = await fetch("/logout", { method: "POST" });
+                if (response.ok) {
+                    window.location.href = "/";
+                } else {
+                    status.textContent = "Logout failed. Please return to the home page.";
+                }
+            } catch (error) {
+                status.textContent = "Could not connect to the server.";
+            }
+        });
+    </script>
+</body>
+</html>
