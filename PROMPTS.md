@@ -210,7 +210,9 @@ I created an audit backup and ran the repair script against the configured Neon 
 
 **Verification:**
 
-The `/admin/verify-audit-chain` endpoint returned `valid: true`, `entriesVerified: 14`, and `Audit chain verified.` This confirms that the current 14 entries passed verification after the repair. It does not prove that the earlier audit records were never modified.
+The live `/admin/verify-audit-chain` endpoint returned `valid: true`, `entriesVerified: 37`, and `Audit chain verified.` This confirms that all 37 current audit entries passed the hash-chain verification after the repair. It does not prove that earlier audit records were never modified.
+
+
 
 **Important limitation:**
 
