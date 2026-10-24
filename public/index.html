@@ -314,7 +314,7 @@ document.getElementById("clearSearchButton").addEventListener("click", () => {
           const item = document.createElement("li");
 
           item.appendChild(document.createTextNode(
-            `${doc.original_name} — ${doc.uploaded_at} `
+            `${doc.original_name} — Document ID: ${doc.id} — ${doc.uploaded_at} `
           ));
 
           const downloadButton = document.createElement("button");
